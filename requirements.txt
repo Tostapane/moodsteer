@@ -1,0 +1,6 @@
+# GPU box (server + vectors). FAKE mode and tests need nothing.
+torch
+transformers>=4.56
+accelerate
+# UI only
+gradio>=5,<6
