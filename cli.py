@@ -87,6 +87,7 @@ class Turn:
         self.screen, self.model, self.n = screen, model, n
         self.words = 0
         self.times = {}
+        self.dot = False  # last streamed chunk ended with "."
 
     def __call__(self, e):
         s = self.screen
@@ -95,19 +96,27 @@ class Turn:
                      "baseline": "generating · baseline"}[e["stage"]]
             s.bar(busy=label)
             if e["stage"] != "detect":
-                self.words = 0
+                self.words, self.dot = 0, False
                 name = c("green", "steered ›") if e["stage"] == "steered" else c("dim", "baseline ›")
                 s.write(f"\n{name} ")
         elif e["type"] == "detected":
             self.times["detect"] = e["seconds"]
             s.write(self.mood_table(e["scores"], e["mood"], e["alphas"]))
         elif e["type"] == "token":
-            s.write(e["text"] if e["stream"] == "steered" else c("dim", e["text"]))
+            text = self.sentences(e["text"])
+            s.write(text if e["stream"] == "steered" else c("dim", text))
             self.words += e["text"].count(" ") + e["text"].count("\n")
             s.bar(busy=f"generating · {e['stream']} · {self.words} words")
         elif e["type"] == "replied":
             self.times[e["stream"]] = e["seconds"]
             s.write("\n" + c("dim", f"  └ {e['words']} words in {e['seconds']:.1f}s") + "\n")
+
+    def sentences(self, text):
+        """One sentence per line: break after every full stop (chunks can split ". " in two)."""
+        if self.dot and text.startswith(" "):
+            text = "\n  " + text[1:]
+        self.dot = text.endswith(".")
+        return text.replace(". ", ".\n  ")
 
     def mood_table(self, scores, mood, alphas):
         rows = [c("dim", f"\n  {'mood':<11} {'this message':<17} {'smoothed':<17}")]
