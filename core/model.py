@@ -1,5 +1,6 @@
 """Steps 5-6: load model, add steering vectors to activations, generate.  Owner: P1.
 Vector file (artifacts/vectors/<behaviour>.pt): {"vec": Tensor[d_model], "layer": int, "max_alpha": float}"""
+import os
 import random
 import time
 from contextlib import contextmanager
@@ -33,8 +34,20 @@ class FakeModel:
         return [[random.random() for _ in range(8)] for _ in texts]
 
 
+def quiet():
+    """Silence Hugging Face progress bars, download notices and warnings."""
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    import huggingface_hub
+    import transformers
+
+    huggingface_hub.utils.logging.set_verbosity_error()
+    transformers.logging.set_verbosity_error()
+    transformers.utils.logging.disable_progress_bar()
+
+
 class Model:
     def __init__(self):
+        quiet()
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -50,7 +63,6 @@ class Model:
         self.steer = {}  # layer index → tensor added to that layer's output
         for i, layer in enumerate(self.layers):
             layer.register_forward_hook(self._hook(i))
-        print(f"loaded {config.MODEL_ID} ({len(self.layers)} layers), vectors: {list(self.vectors) or 'none'}")
 
     def _hook(self, i):
         def hook(module, inp, out):

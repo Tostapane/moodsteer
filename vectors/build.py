@@ -12,6 +12,7 @@ Run on the GPU box: python -m vectors.build [behaviour ...] [--regen]   → arti
 Restart the server afterwards."""
 import json
 import sys
+import time
 from pathlib import Path
 
 import torch
@@ -51,14 +52,15 @@ def generate_pairs(names, m):
     """Write data/pairs/<name>.jsonl for all `names` with ONE batched generation (faster than one batch each)."""
     convos = [[{"role": "system", "content": persona}, {"role": "user", "content": q}]
               for name in names for persona in PERSONAS[name] for q in QUESTIONS]
-    print(f"generating {len(convos)} example answers for {', '.join(names)} (one batch)…", flush=True)
+    t = time.time()
+    print(f"generating {len(convos)} example answers ({', '.join(names)})…", end=" ", flush=True)
     answers = iter(m.generate_batch(convos, max_new_tokens=ANSWER_TOKENS))
     DATA.mkdir(parents=True, exist_ok=True)
     for name in names:
         pos, neg = [next(answers) for _ in QUESTIONS], [next(answers) for _ in QUESTIONS]
         rows = [{"question": q, "positive": p, "negative": n} for q, p, n in zip(QUESTIONS, pos, neg) if p and n]
         (DATA / f"{name}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
-        print(f"generated data/pairs/{name}.jsonl")
+    print(f"done in {time.time() - t:.0f}s → {DATA}/")
 
 
 def load_pairs(name):
@@ -75,18 +77,26 @@ def build(name, m):
     pos = m.acts([p + r["positive"] for p, r in zip(prefixes, rows)], layer, starts)
     neg = m.acts([p + r["negative"] for p, r in zip(prefixes, rows)], layer, starts)
     vec = pos.mean(0) - neg.mean(0)
-    print(f"{name}: {len(rows)} pairs, layer {layer}, |vec| = {vec.norm():.1f} "
-          f"({vec.norm() / pos.norm(dim=1).mean():.0%} of a typical hidden state)")
+    strength = (vec.norm() / pos.norm(dim=1).mean()).item()  # vector size vs a typical hidden state
+    print(f"{name:<11} {len(rows):>5}  {'█' * max(1, round(strength * 40))} {strength:.0%}"
+          + ("  weak" if strength < 0.08 else ""))
     return {"vec": vec, "layer": layer, "max_alpha": MAX_ALPHA}
 
 
 if __name__ == "__main__":
+    t = time.time()
     regen = "--regen" in sys.argv
     names = [a for a in sys.argv[1:] if not a.startswith("--")] or list(PERSONAS)
+    print(f"loading {config.MODEL_ID}…", end=" ", flush=True)
     m = get_model()
+    layer = config.STEER_LAYER if config.STEER_LAYER is not None else len(m.layers) // 2
     missing = [n for n in names if regen or not (DATA / f"{n}.jsonl").exists()]
+    print(f"{len(m.layers)} layers · steering layer {layer} · examples: "
+          + (f"generating {len(missing)}" if missing else f"cached in {DATA}/"))
     if missing:
         generate_pairs(missing, m)
     Path(config.VECTORS_DIR).mkdir(parents=True, exist_ok=True)
+    print(f"\n{'vector':<11} pairs  strength")
     for name in names:
         torch.save(build(name, m), Path(config.VECTORS_DIR) / f"{name}.pt")
+    print(f"\nsaved {len(names)} vectors → {config.VECTORS_DIR}/  ({time.time() - t:.0f}s)")
