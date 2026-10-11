@@ -33,3 +33,4 @@ SERVER=http://<gpu-box>:8000 python sim/simulate.py
 | P5 | `sim/` | data generation, simulated users, scoring |
 
 Rules: push only to your folder · interface changes → tell P1 · missing piece = no steering, never a crash.
+# moodsteer
