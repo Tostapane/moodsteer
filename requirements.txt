@@ -2,5 +2,3 @@
 torch
 transformers>=4.56
 accelerate
-# UI only
-gradio>=5,<6

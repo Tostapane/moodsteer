@@ -1,0 +1,24 @@
+I don't understand, what is a KeyError and why am I getting it?
+Wait, what do you mean by "deserialize"? I'm lost.
+I'm confused, should the cover letter repeat my CV or not?
+Sorry, I don't get what a thesis statement is supposed to be.
+What? Why does LEFT JOIN give me more rows than I expected? I don't follow.
+I don't understand the difference between WHERE and HAVING, can you explain again?
+Huh, what does "fold in the eggs" mean? I'm lost.
+I don't get it, do I put the egg in before or after the water boils?
+I'm confused, where did the 15 come from in your solution?
+Wait, I don't understand which part is f and which is g in the product rule.
+I'm lost, what's the difference between reset and revert?
+What do you mean by "detached HEAD"? That makes no sense to me.
+I don't understand, why isn't justify-content doing anything?
+Sorry, what's the difference between fr and %? I'm confused.
+I don't get what you mean by the STAR method, can you explain it more simply?
+Wait, so do I talk about my weaknesses or not? I'm confused.
+I don't understand what the $ signs do in the formula.
+Huh? Why does VLOOKUP return #N/A when the value is clearly there?
+I'm confused, what are props and how are they different from state?
+I don't get the dependency array thing at all, what does it do?
+I'm lost, what's the difference between active recall and rereading?
+Sorry, I don't understand what you mean by "chunking".
+I don't get it, should the email be formal or not?
+Wait, what do you mean by Schengen? Do I need a visa or not?

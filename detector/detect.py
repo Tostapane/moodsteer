@@ -1,55 +1,63 @@
 """Step 2: message → mood scores 0..1.  Owner: P3.
-llm   = the served model (Qwen) reads the conversation and returns JSON scores, unsteered.
-regex = keywords + simple signals; also the fallback when the LLM reply isn't valid JSON."""
+probe = project the model's activations, averaged over the whole user message, onto mood directions
+        (built by detector/build.py). No generation, ~one forward pass.
+llm   = the model reads the conversation and answers with JSON scores.
+config.DETECTOR picks where to start (probe → llm). If nothing can answer: neutral, i.e. no steering."""
 import json
 import re
+from pathlib import Path
 
 import config
 
-PATTERNS = {
-    "curious":    r"\b(why|how (does|do|come)|what if|curious|interesting)\b",
-    "confused":   r"(don'?t|do not) (get|understand)|what do you mean|confus|\blost\b|\bhuh\b",
-    "frustrated": r"\b(no|wrong|again|still|doesn'?t work|not working|i said)\b",
-    "rage":       r"\b(wtf|fuck\w*|stupid|useless|damn)\b|!!+",
-    "sad":        r"give up|i'?m (so )?(bad|dumb|useless)|hopeless|\btired\b|\bsad\b",
-    "rushed":     r"\b(quick(ly)?|asap|just give|fast|tl;?dr)\b",
-    "excited":    r"\b(awesome|amazing|love (it|this)|let'?s go)\b|🎉|🚀",
-    "skeptical":  r"are you sure|\bsource|really\?|\bprove\b|\bdoubt",
+MOOD_DESC = {
+    "curious":    "wants to learn more, asks why/how",
+    "confused":   "doesn't understand the previous answer",
+    "frustrated": "annoyed that things aren't working, corrects the assistant",
+    "rage":       "angry, shouting, insulting",
+    "sad":        "discouraged, wants to give up, feels bad about themselves",
+    "rushed":     "in a hurry, wants a short direct answer",
+    "excited":    "happy, enthusiastic",
+    "skeptical":  "doubts the assistant, asks for proof",
 }
 
 
-def detect_regex(msg: str, history: list) -> dict[str, float]:
-    low = msg.lower()
-    hits = {m: len(re.findall(p, low)) for m, p in PATTERNS.items()}
-
-    letters = [c for c in msg if c.isalpha()]
-    if len(letters) > 8 and sum(c.isupper() for c in letters) / len(letters) > 0.6:
-        hits["rage"] += 2  # SHOUTING
-    last_user = next((h["content"] for h in reversed(history) if h["role"] == "user"), None)
-    if last_user and last_user.strip().lower() == low.strip():
-        hits["frustrated"] += 2  # repeated the same message
-
-    scores = {m: min(1.0, 0.5 * n) for m, n in hits.items()}
+def with_neutral(scores):
     scores["neutral"] = 1.0 - max(scores.values())
     return scores
 
 
-PROMPT = """You read a conversation between a user and an assistant and rate the mood of the user's LAST message.
-Score each mood from 0 (absent) to 1 (very strong). Several moods can be present at once.
-- curious: wants to learn more, asks why/how
-- confused: doesn't understand the previous answer
-- frustrated: annoyed that things aren't working, corrects the assistant
-- rage: angry, shouting, insulting
-- sad: discouraged, wants to give up, feels bad about themselves
-- rushed: in a hurry, wants a short direct answer
-- excited: happy, enthusiastic
-- skeptical: doubts the assistant, asks for proof
-Reply with JSON only, no other text, exactly these keys:
-{"curious": 0, "confused": 0, "frustrated": 0, "rage": 0, "sad": 0, "rushed": 0, "excited": 0, "skeptical": 0}"""
+# ---- probe -------------------------------------------------------------------------------------
+
+_probe = None
+
+
+def detect_probe(msg: str, history: list) -> dict[str, float] | None:
+    global _probe
+    if _probe is None:
+        if not Path(config.MOODS_FILE).exists():
+            return None
+        import torch
+        _probe = torch.load(config.MOODS_FILE)
+    from core.model import get_model  # lazy: avoids a circular import
+
+    p = _probe
+    h = get_model().acts([msg], p["layer"])[0]                   # mean over every token of the message
+    proj = p["dirs"] @ (h - p["mu"])                             # one number per mood
+    s = ((proj - p["lo"]) / (p["hi"] - p["lo"])).clamp(0, 1)     # 0 ≈ neutral, 1 ≈ typical example
+    return with_neutral(dict(zip(p["moods"], s.tolist())))
+
+
+# ---- llm ---------------------------------------------------------------------------------------
+
+PROMPT = ("You read a conversation between a user and an assistant and rate the mood of the user's LAST message.\n"
+          "Score each mood from 0 (absent) to 1 (very strong). Several moods can be present at once.\n"
+          + "".join(f"- {m}: {d}\n" for m, d in MOOD_DESC.items())
+          + "Reply with JSON only, no other text, exactly these keys:\n"
+          + json.dumps({m: 0 for m in MOOD_DESC}))
 
 
 def detect_llm(msg: str, history: list) -> dict[str, float] | None:
-    from core.model import get_model  # lazy: avoids a circular import
+    from core.model import get_model
 
     convo = "\n".join(f"{h['role'].upper()}: {h['content'][:500]}" for h in history[-4:])
     convo += f"\nUSER (last message): {msg[:1000]}"
@@ -59,16 +67,20 @@ def detect_llm(msg: str, history: list) -> dict[str, float] | None:
                            max_new_tokens=120)
     try:
         raw = json.loads(re.search(r"\{.*\}", reply, re.S).group())
-        scores = {m: min(1.0, max(0.0, float(raw.get(m, 0)))) for m in PATTERNS}
+        return with_neutral({m: min(1.0, max(0.0, float(raw.get(m, 0)))) for m in MOOD_DESC})
     except (AttributeError, ValueError, TypeError):
         return None
-    scores["neutral"] = 1.0 - max(scores.values())
-    return scores
+
+
+# ---- entry point -------------------------------------------------------------------------------
+
+DETECTORS = {"probe": detect_probe, "llm": detect_llm}
 
 
 def detect(msg: str, history: list) -> dict[str, float]:
-    if config.DETECTOR == "llm":
-        scores = detect_llm(msg, history)
+    names = list(DETECTORS)
+    for name in names[names.index(config.DETECTOR):]:
+        scores = DETECTORS[name](msg, history)
         if scores is not None:
             return scores
-    return detect_regex(msg, history)
+    return with_neutral({m: 0.0 for m in MOOD_DESC})

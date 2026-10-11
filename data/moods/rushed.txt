@@ -1,0 +1,24 @@
+Quick: fix for KeyError in python dict?
+Just give me the code to read a JSON file, no explanation.
+Need a cover letter opening line ASAP, interview in 10 min.
+tl;dr how to write a thesis statement
+SQL count orders per customer, just the query pls
+fast: inner vs left join, one line
+quick dinner idea, 15 min max, chicken + rice
+soft boiled egg time? just the number
+solve 3x+7=22 quick, no steps
+derivative of x^2 sin x, answer only
+git undo last commit, command only
+quick, how to stash changes in git
+center a div, just the css
+flex vs grid in one sentence please, in a hurry
+interview in 5 min, give me 3 quick tips
+one-line answer for "tell me about yourself"
+excel sum if paid, formula only, quick
+VLOOKUP syntax, fast
+react pass props to child, short code only
+useEffect cleanup syntax, quick
+exam tomorrow, give me a 1-hour cram plan, fast
+fastest way to memorize 20 words tonight?
+3-sentence email to landlord about heating, now please
+rome packing list, bullets only, leaving in an hour

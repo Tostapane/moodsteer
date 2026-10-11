@@ -1,0 +1,24 @@
+I've been stuck on this KeyError all day, I feel so dumb.
+I'll never be a real programmer, I can't even read a JSON file.
+I've sent 50 cover letters and nobody replied. Maybe I'm just not good enough.
+My essay is due tomorrow and I just feel like giving up.
+Everyone else at work understands SQL and I just don't. I feel stupid.
+I tried so hard on this query and it's still wrong, I'm so tired.
+I tried to cook dinner for my family and ruined it. I'm terrible at this.
+I can't even boil an egg properly, I feel like such a failure.
+I failed my last math test and I think I'm just bad at math.
+I've studied calculus for weeks and I still don't get it. What's the point.
+I broke the repo and my team is going to think I'm useless.
+I'm the only one on my team who doesn't understand git, it's embarrassing.
+I've been trying to fix this layout for hours, I'm exhausted and want to quit.
+Maybe web development just isn't for me.
+I got rejected from another interview, I don't think I'll ever get a job.
+I'm so nervous for my interview, I feel like I'm not good enough.
+My boss criticized my spreadsheet in front of everyone, I feel awful.
+I've been at this Excel file all night and I'm so tired.
+I've been learning React for months and I still feel hopeless.
+I keep failing at this, maybe I'm too old to learn coding.
+I failed the exam again, I don't know if I can keep going.
+I'm so overwhelmed, I can't remember anything I study.
+My landlord ignores me and I feel so alone dealing with this.
+I had to cancel my trip, I was really looking forward to it. Feeling down.

@@ -1,0 +1,24 @@
+Why does Python raise a KeyError instead of just returning None?
+How does Python actually parse JSON under the hood?
+What makes a cover letter stand out to recruiters? I'd love to understand the psychology.
+Why do teachers love the five-paragraph essay so much? Where did it come from?
+How does the database decide which join algorithm to use? That sounds fascinating.
+What happens internally when a SQL query runs? I'm curious about the steps.
+Why does browning meat make it taste so much better? What's the chemistry?
+Interesting, so why do eggs go from liquid to solid when heated?
+Why does moving a number to the other side of the equation flip its sign?
+Where does the product rule come from? I want to understand why it works.
+How does git store history internally? Is it really just snapshots?
+What's the story behind git's design? Why did Linus build it that way?
+Why was centering things in CSS historically so hard?
+How does the browser decide where each grid item goes? I'd love to dig into it.
+What are interviewers actually trying to learn from behavioral questions?
+Why do companies still do whiteboard interviews? What's the reasoning?
+How does Excel recalculate formulas so fast when I change one cell?
+What if I used INDEX/MATCH instead of VLOOKUP, how does it work differently?
+How does React know which components to re-render? What's going on behind the scenes?
+Why did React move from classes to hooks? What problem were they solving?
+How does spaced repetition actually work in the brain?
+Why do some people learn languages so much faster than others?
+What makes an email sound polite versus pushy? Is there research on that?
+How did Rome become the center of an empire? I'm curious about the history.

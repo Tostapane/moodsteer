@@ -1,0 +1,24 @@
+That fix didn't work, I'm still getting the same KeyError.
+No, I already told you the file exists. It still fails to load the JSON.
+This is the third version and it still sounds generic. Please actually use my experience.
+You keep ignoring my instructions. I said 300 words, not 600.
+The query is still wrong, it counts duplicates again.
+No, that's not what I asked. I need customers with zero orders too.
+I followed your recipe exactly and it came out burnt again.
+That's not right, the eggs were raw in the middle. Again.
+Your answer is wrong, I checked and x is not 4.
+No, that's the same mistake as before, the derivative is still incorrect.
+I did what you said and now I lost my changes. Great.
+It still says "detached HEAD", nothing you suggested works.
+Still not centered. I've tried everything you said.
+No, the grid is still broken on mobile, same as before.
+These answers are way too generic, I already said I'm a senior engineer.
+You're not listening, I asked for questions for a PM role, not engineering.
+The formula still returns 0. This is the fourth time.
+No, VLOOKUP still gives #N/A, your fix changed nothing.
+It still re-renders infinitely, your suggestion didn't help at all.
+I already tried that. The state is still not updating.
+This plan doesn't work for me, I told you I only have evenings free.
+Again, I asked for a method that doesn't involve flashcards.
+This email is too long again, I asked for three sentences.
+That's not what I asked, I said I'm going in winter, not summer.

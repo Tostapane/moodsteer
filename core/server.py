@@ -1,7 +1,7 @@
 """HTTP API. Only this process touches the GPU.  Owner: P1.
-  POST /chat   {"session_id", "msg", "steer"} → {"reply", "scores", "mood", "alphas"}
+  POST /chat   {"session_id", "msg", "steer", "compare"} → {"reply", "scores", "mood", "alphas", ["baseline"]}
   POST /reset  {"session_id"}
-  POST /hidden {"texts": [...], "layer": int|null} → {"hidden": [[...], ...]}
+  POST /acts   {"texts": [...], "layer": int|null} → {"acts": [[...], ...]}  (mean hidden state per text)
   GET  /health
 Run: python -m core.server   (FAKE=1 python -m core.server for no-GPU dev)"""
 import json
@@ -30,13 +30,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             if self.path == "/chat":
-                return self._send(200, chat(body["session_id"], body["msg"], body.get("steer", True)))
+                return self._send(200, chat(body["session_id"], body["msg"], body.get("steer", True),
+                                             body.get("compare", False)))
             if self.path == "/reset":
                 reset(body["session_id"])
                 return self._send(200, {"ok": True})
-            if self.path == "/hidden":
-                h = get_model().hidden(body["texts"], body.get("layer"))
-                return self._send(200, {"hidden": h.tolist() if hasattr(h, "tolist") else h})
+            if self.path == "/acts":
+                h = get_model().acts(body["texts"], body.get("layer"))
+                return self._send(200, {"acts": h.tolist() if hasattr(h, "tolist") else h})
             self._send(404, {"error": "not found"})
         except Exception as e:
             self._send(500, {"error": repr(e)})

@@ -1,0 +1,24 @@
+Are you sure that's why I'm getting a KeyError? It doesn't seem right.
+Is json.load really safe for untrusted files? Source?
+Do recruiters actually read cover letters? I doubt it.
+Really? I've never heard that essays need exactly five paragraphs. Prove it.
+Are you sure this query handles NULLs correctly?
+I doubt LEFT JOIN is faster here, do you have evidence?
+Is it really safe to eat chicken cooked that way? Are you sure?
+6 minutes for a soft egg? That sounds wrong, where did you get that?
+Are you sure x = 5? Can you verify it by plugging it back in?
+I don't think that derivative is right. Can you double-check?
+Is reset --hard really safe? It sounds dangerous.
+Are you sure stash keeps untracked files? I doubt it.
+Does that CSS really work in all browsers? Source?
+Really? Is grid actually better than flexbox or is that just opinion?
+Is that interview advice backed by anything, or just guesses?
+Do companies really care about that? I'm not convinced.
+Are you sure SUMIF works like that? Can you show proof?
+I doubt VLOOKUP is the best option here, why not XLOOKUP?
+Is that really how React handles re-renders? Show me the docs.
+Are you sure useEffect runs after render? That contradicts what I read.
+Does spaced repetition really work, or is that a myth?
+Is there actual research behind that memorization trick?
+Are you sure that email is legally sufficient? I'm not convinced.
+Is it really that cheap to travel to Rome? That sounds too good to be true.

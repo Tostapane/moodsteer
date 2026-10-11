@@ -1,0 +1,24 @@
+How do I fix a KeyError in my Python dictionary lookup?
+Can you show me how to read a JSON file in Python?
+Please review the intro paragraph of my cover letter.
+What's a good structure for a five-paragraph essay?
+Write a SQL query that counts orders per customer.
+What's the difference between INNER JOIN and LEFT JOIN?
+What can I cook with chicken, rice and broccoli?
+How long should I boil an egg for a soft yolk?
+Can you solve 3x + 7 = 22 and show the steps?
+How do I find the derivative of x^2 * sin(x)?
+How do I undo my last git commit?
+What does git stash do?
+How do I center a div horizontally and vertically?
+What's the difference between flexbox and grid?
+What questions should I prepare for a product manager interview?
+How do I answer "tell me about yourself"?
+How do I sum a column in Excel only if another column says "paid"?
+What does VLOOKUP do?
+How do I pass data from a parent to a child component in React?
+When should I use useEffect?
+Can you make me a study plan for my biology exam in two weeks?
+What's a good way to memorize vocabulary?
+Draft a short email asking my landlord to fix the heating.
+What should I pack for a weekend trip to Rome?
