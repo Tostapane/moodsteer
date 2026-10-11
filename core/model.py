@@ -13,7 +13,7 @@ class FakeModel:
     def set_alphas(self, alphas):
         self.alphas = alphas
 
-    def generate(self, messages):
+    def generate(self, messages, max_new_tokens=None):
         tag = ", ".join(f"{k}={v:.2f}" for k, v in self.alphas.items()) or "none"
         return f"[fake | steering: {tag}] you said: {messages[-1]['content']}"
 
@@ -55,11 +55,12 @@ class Model:
                 continue
             self.steer[v["layer"]] = self.steer.get(v["layer"], 0) + a * v["max_alpha"] * v["vec"]
 
-    def generate(self, messages):
+    def generate(self, messages, max_new_tokens=None):
         text = self.tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         enc = self.tok(text, return_tensors="pt", add_special_tokens=False).to(self.model.device)
         with self.torch.no_grad():
-            out = self.model.generate(**enc, max_new_tokens=config.MAX_NEW_TOKENS, do_sample=False)
+            out = self.model.generate(**enc, max_new_tokens=max_new_tokens or config.MAX_NEW_TOKENS,
+                                      do_sample=False)
         return self.tok.decode(out[0, enc.input_ids.shape[1]:], skip_special_tokens=True)
 
     def hidden(self, texts, layer=None):

@@ -1,6 +1,10 @@
 """Step 2: message → mood scores 0..1.  Owner: P3.
-v0 = regex + simple signals. v1: swap in a probe on model activations, keep the signature."""
+llm   = the served model (Qwen) reads the conversation and returns JSON scores, unsteered.
+regex = keywords + simple signals; also the fallback when the LLM reply isn't valid JSON."""
+import json
 import re
+
+import config
 
 PATTERNS = {
     "curious":    r"\b(why|how (does|do|come)|what if|curious|interesting)\b",
@@ -14,7 +18,7 @@ PATTERNS = {
 }
 
 
-def detect(msg: str, history: list) -> dict[str, float]:
+def detect_regex(msg: str, history: list) -> dict[str, float]:
     low = msg.lower()
     hits = {m: len(re.findall(p, low)) for m, p in PATTERNS.items()}
 
@@ -28,3 +32,43 @@ def detect(msg: str, history: list) -> dict[str, float]:
     scores = {m: min(1.0, 0.5 * n) for m, n in hits.items()}
     scores["neutral"] = 1.0 - max(scores.values())
     return scores
+
+
+PROMPT = """You read a conversation between a user and an assistant and rate the mood of the user's LAST message.
+Score each mood from 0 (absent) to 1 (very strong). Several moods can be present at once.
+- curious: wants to learn more, asks why/how
+- confused: doesn't understand the previous answer
+- frustrated: annoyed that things aren't working, corrects the assistant
+- rage: angry, shouting, insulting
+- sad: discouraged, wants to give up, feels bad about themselves
+- rushed: in a hurry, wants a short direct answer
+- excited: happy, enthusiastic
+- skeptical: doubts the assistant, asks for proof
+Reply with JSON only, no other text, exactly these keys:
+{"curious": 0, "confused": 0, "frustrated": 0, "rage": 0, "sad": 0, "rushed": 0, "excited": 0, "skeptical": 0}"""
+
+
+def detect_llm(msg: str, history: list) -> dict[str, float] | None:
+    from core.model import get_model  # lazy: avoids a circular import
+
+    convo = "\n".join(f"{h['role'].upper()}: {h['content'][:500]}" for h in history[-4:])
+    convo += f"\nUSER (last message): {msg[:1000]}"
+    model = get_model()
+    model.set_alphas({})  # classify with the unsteered model
+    reply = model.generate([{"role": "system", "content": PROMPT}, {"role": "user", "content": convo}],
+                           max_new_tokens=120)
+    try:
+        raw = json.loads(re.search(r"\{.*\}", reply, re.S).group())
+        scores = {m: min(1.0, max(0.0, float(raw.get(m, 0)))) for m in PATTERNS}
+    except (AttributeError, ValueError, TypeError):
+        return None
+    scores["neutral"] = 1.0 - max(scores.values())
+    return scores
+
+
+def detect(msg: str, history: list) -> dict[str, float]:
+    if config.DETECTOR == "llm":
+        scores = detect_llm(msg, history)
+        if scores is not None:
+            return scores
+    return detect_regex(msg, history)

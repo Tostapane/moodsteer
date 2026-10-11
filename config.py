@@ -10,7 +10,8 @@ TRACE_FILE = "runs/trace.jsonl"
 SYSTEM_PROMPT = "You are a helpful assistant."
 MAX_NEW_TOKENS = 400
 
-# step 2
+# step 2: "llm" = the model itself classifies the mood (falls back to regex), "regex" = keywords only
+DETECTOR = os.getenv("DETECTOR", "llm")
 MOODS = ["neutral", "curious", "confused", "frustrated", "rage", "sad", "rushed", "excited", "skeptical"]
 
 # step 3: mood = SMOOTH * previous + (1 - SMOOTH) * new
