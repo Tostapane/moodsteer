@@ -1,0 +1,46 @@
+"""Show how each axis changes one reply as the strength grows, to pick config.STRENGTH.  Owner: P2.
+Run: python -m vectors.tune [axis ...] [--prompt "..."] [--neg]
+  --neg  push toward the second pole (e.g. calm → enthusiastic)
+Read each axis top to bottom: pick the largest strength where the reply changed but is still good."""
+import shutil
+import sys
+
+import config
+from core.model import get_model
+
+PROMPT = "My code throws a KeyError and I don't know why. What should I do?"
+MULTS = [2, 4, 6, 8]
+
+
+def main():
+    args = sys.argv[1:]
+    prompt = PROMPT
+    if "--prompt" in args:
+        i = args.index("--prompt")
+        prompt = args[i + 1]
+        del args[i:i + 2]
+    sign = -1 if "--neg" in args else 1
+    names = [a for a in args if not a.startswith("--")]
+
+    print(f"loading {config.MODEL_ID}…", flush=True)
+    m = get_model()
+    names = names or sorted(m.vectors)
+    width = shutil.get_terminal_size((100, 24)).columns - 14
+    msgs = [{"role": "system", "content": config.SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+
+    def show(label, steer):
+        m.steer = steer
+        out = m.generate(msgs, max_new_tokens=80)
+        print(f"  {label:<5} {len(out.split()):>3}w  {' '.join(out.split())[:width]}", flush=True)
+
+    print(f"prompt: {prompt}\n")
+    show("×0", {})
+    for name in names:
+        v = m.vectors[name]
+        print(f"\n{name} ({'−' if sign < 0 else '+'} pole) · config.STRENGTH = {config.STRENGTH.get(name)}")
+        for k in MULTS:
+            show(f"×{k}", {v["layer"]: sign * k * v["vec"]})
+
+
+if __name__ == "__main__":
+    main()

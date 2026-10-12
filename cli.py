@@ -5,6 +5,7 @@ Runs the whole pipeline in-process (no server needed).
   FAKE=1 python cli.py                                               # no GPU, canned replies
 Commands: /compare  toggle the unsteered reply · /steer  toggle steering · /reset  new conversation · /quit"""
 import itertools
+import re
 import shutil
 import signal
 import sys
@@ -16,6 +17,8 @@ from core.chat import chat, reset
 from core.model import get_model
 
 TTY = sys.stdout.isatty()
+MAX_WIDTH = 100  # replies wrap at the terminal width, capped here so lines stay readable full screen
+INDENT = len("baseline › ")
 COLORS = {"dim": 2, "bold": 1, "cyan": 36, "green": 32, "yellow": 33, "red": 31, "magenta": 35}
 
 
@@ -87,7 +90,7 @@ class Turn:
         self.screen, self.model, self.n = screen, model, n
         self.words = 0
         self.times = {}
-        self.dot = False  # last streamed chunk ended with "."
+        self.col, self.space = 0, False  # current column, a space is pending before the next word
 
     def __call__(self, e):
         s = self.screen
@@ -96,14 +99,14 @@ class Turn:
                      "baseline": "generating · baseline"}[e["stage"]]
             s.bar(busy=label)
             if e["stage"] != "detect":
-                self.words, self.dot = 0, False
-                name = c("green", "steered ›") if e["stage"] == "steered" else c("dim", "baseline ›")
-                s.write(f"\n{name} ")
+                self.words, self.col, self.space = 0, INDENT, False
+                label = f"{e['stage']} ›".ljust(INDENT)
+                s.write("\n" + (c("green", label) if e["stage"] == "steered" else c("dim", label)))
         elif e["type"] == "detected":
             self.times["detect"] = e["seconds"]
             s.write(self.mood_table(e["scores"], e["mood"], e["alphas"]))
         elif e["type"] == "token":
-            text = self.sentences(e["text"])
+            text = self.wrap(e["text"])
             s.write(text if e["stream"] == "steered" else c("dim", text))
             self.words += e["text"].count(" ") + e["text"].count("\n")
             s.bar(busy=f"generating · {e['stream']} · {self.words} words")
@@ -111,12 +114,30 @@ class Turn:
             self.times[e["stream"]] = e["seconds"]
             s.write("\n" + c("dim", f"  └ {e['words']} words in {e['seconds']:.1f}s") + "\n")
 
-    def sentences(self, text):
-        """One sentence per line: break after every full stop (chunks can split ". " in two)."""
-        if self.dot and text.startswith(" "):
-            text = "\n  " + text[1:]
-        self.dot = text.endswith(".")
-        return text.replace(". ", ".\n  ")
+    def wrap(self, text):
+        """Word-wrap streamed text at the terminal width (max MAX_WIDTH); wrapped lines are indented."""
+        width = min(shutil.get_terminal_size((MAX_WIDTH, 24)).columns, MAX_WIDTH)
+        out = ""
+        for part in re.split(r"(\s+)", text):
+            if not part:
+                continue
+            if part.isspace():
+                if "\n" in part:
+                    out += "\n" * part.count("\n") + " " * INDENT
+                    self.col, self.space = INDENT, False
+                else:
+                    self.space = True
+                continue
+            if self.space and self.col + 1 + len(part) > width:
+                out += "\n" + " " * INDENT
+                self.col = INDENT
+            elif self.space:
+                out += " "
+                self.col += 1
+            out += part
+            self.col += len(part)
+            self.space = False
+        return out
 
     def mood_table(self, scores, mood, alphas):
         rows = [c("dim", f"\n  {'mood':<11} {'this message':<17} {'smoothed':<17}")]
@@ -132,9 +153,9 @@ class Turn:
         vectors = getattr(self.model, "vectors", None)
         if alphas:
             parts = []
-            for b, a in sorted(alphas.items(), key=lambda kv: -kv[1]):
+            for b, a in sorted(alphas.items(), key=lambda kv: -abs(kv[1])):
                 missing = vectors is not None and b not in vectors
-                parts.append(f"{b} {a:.2f}" + (c("red", " (no vector)") if missing else ""))
+                parts.append(f"{b} {a:+.2f}" + (c("red", " (no vector)") if missing else ""))
             rows.append(c("cyan", "  steering → ") + " · ".join(parts))
         else:
             rows.append(c("cyan", "  steering → ") + c("dim", f"none (no mood above {config.THRESHOLD})"))

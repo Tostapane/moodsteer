@@ -14,25 +14,31 @@ TRACE_FILE = "runs/trace.jsonl"
 SYSTEM_PROMPT = "You are a helpful assistant."
 MAX_NEW_TOKENS = 400
 
-# step 2: which detector to try first; falls back to the next (probe → llm → neutral = no steering)
-#   probe = mood read from the model's activations (needs detector/build.py) · llm = model answers with JSON
-DETECTOR = os.getenv("DETECTOR", "probe")
+# step 2: the model reads the conversation and names ONE dominant mood + intensity 0-10 (→ 0..1).
+#   "probe" = experimental activation reader (needs detector/build.py), falls back to "llm".
+DETECTOR = os.getenv("DETECTOR", "llm")
 MOODS = ["neutral", "curious", "confused", "frustrated", "rage", "sad", "rushed", "excited", "skeptical"]
 
-# step 3: mood = SMOOTH * previous + (1 - SMOOTH) * new
-SMOOTH = 0.6
-INSTANT = {"rage"}  # jump up immediately, no smoothing
-THRESHOLD = 0.3     # moods below this don't steer
+# step 3: mood = SMOOTH * previous + (1 - SMOOTH) * new   (low = follows the current message closely)
+SMOOTH = 0.3
+THRESHOLD = 0.3  # moods below this don't steer
 
-# step 4: mood → behaviour weights. Each behaviour = one file in VECTORS_DIR (missing → skipped).
+# step 4: mood → axis weights. Each axis is one vector (vectors/build.py AXES) with two poles:
+#   + pushes toward the first pole, − toward the second. Missing vectors are skipped.
 MAPPING = {
     "neutral":    {},
-    "curious":    {"detailed": 1.0},
-    "confused":   {"simple": 1.0},
-    "frustrated": {"concise": 0.7, "careful": 0.5},
-    "rage":       {"calm": 1.0, "concise": 0.5},
-    "sad":        {"warm": 1.0},
-    "rushed":     {"concise": 1.0},
-    "excited":    {"energetic": 0.7},
-    "skeptical":  {"careful": 0.6, "evidence": 1.0},
+    "curious":    {"cautious": 0.5},
+    "confused":   {"simple": 1.0, "structured": 0.7},
+    "frustrated": {"concise": 0.8, "direct": 0.6, "accountable": 0.6},
+    "rage":       {"calm": 1.0, "concise": 0.7, "accountable": 0.8},
+    "sad":        {"warm": 1.0, "calm": 0.5},
+    "rushed":     {"concise": 1.0, "direct": 1.0},
+    "excited":    {"calm": -0.5},
+    "skeptical":  {"cautious": 1.0},
+}
+
+# step 5: how hard each axis pushes at α = ±1 (multiplier on the vector). Pick values with: python -m vectors.tune
+STRENGTH = {
+    "concise": 4.0, "warm": 4.0, "calm": 4.0, "simple": 4.0,
+    "direct": 4.0, "cautious": 4.0, "structured": 4.0, "accountable": 4.0,
 }

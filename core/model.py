@@ -1,5 +1,5 @@
 """Steps 5-6: load model, add steering vectors to activations, generate.  Owner: P1.
-Vector file (artifacts/vectors/<behaviour>.pt): {"vec": Tensor[d_model], "layer": int, "max_alpha": float}"""
+Vector file (artifacts/vectors/<axis>.pt): {"vec": Tensor[d_model], "layer": int}. Strength: config.STRENGTH."""
 import os
 import random
 import time
@@ -75,13 +75,14 @@ class Model:
         return hook
 
     def set_alphas(self, alphas):
-        """alphas are 0..1 per behaviour, scaled by each vector's max_alpha. Unknown behaviours are skipped."""
+        """alphas are -1..1 per axis (sign picks the pole), scaled by config.STRENGTH. Unknown axes are skipped."""
         self.steer = {}
         for name, a in alphas.items():
             v = self.vectors.get(name)
             if v is None or a == 0:
                 continue
-            self.steer[v["layer"]] = self.steer.get(v["layer"], 0) + a * v["max_alpha"] * v["vec"]
+            add = a * config.STRENGTH.get(name, 4.0) * v["vec"]
+            self.steer[v["layer"]] = self.steer.get(v["layer"], 0) + add
 
     @contextmanager
     def unsteered(self):
