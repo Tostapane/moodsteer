@@ -24,7 +24,7 @@ class JsonModel(core.model.FakeModel):
 
     def generate(self, messages, max_new_tokens=None, on_token=None):
         if messages[0]["content"] == PROMPT:
-            last = messages[-1]["content"]
+            last = messages[-1]["content"].split("USER (last message):")[-1]
             return self.answer or ('{"mood": "rage", "intensity": 10}' if "WTF" in last else
                                    '{"mood": "frustrated", "intensity": 9}' if "wrong" in last else
                                    '{"mood": "neutral", "intensity": 0}')
@@ -34,13 +34,19 @@ class JsonModel(core.model.FakeModel):
 core.model._model = JsonModel()
 
 r = chat("smoke-b", "my code crashes")
-assert set(r) == {"reply", "scores", "mood", "alphas"} and r["alphas"] == {}, r
-r = chat("smoke-b", "no that's wrong")  # frustrated .9 → smoothed .63 → above threshold
+assert set(r) == {"reply", "scores", "alphas"} and r["alphas"] == {}, r
+r = chat("smoke-b", "no that's wrong")  # 1st mood message: 100% → concise = .9 × .8
 assert r["scores"]["frustrated"] == 0.9 and r["scores"]["rage"] == 0.0, r  # one dominant mood
-assert abs(r["mood"]["frustrated"] - 0.63) < 1e-9 and r["alphas"]["concise"] > 0, r
+assert abs(r["alphas"]["concise"] - 0.72) < 1e-9, r
+r = chat("smoke-b", "ok, next topic")  # neutral → memory fades slowly, steering stays on
+assert abs(r["alphas"]["concise"] - 0.648) < 1e-9, r
+r = chat("smoke-b", "still wrong")  # 2nd mood message: 50/50
+assert abs(r["alphas"]["concise"] - (0.5 * 0.648 + 0.5 * 0.72)) < 1e-9, r
+r = chat("smoke-b", "wrong again")  # 3rd: capped at 40% new
+assert abs(r["alphas"]["concise"] - (0.6 * 0.684 + 0.4 * 0.72)) < 1e-9, r
 
 r = chat("smoke-c", "WTF THIS IS USELESS")
-assert r["mood"]["rage"] == 0.7 and r["alphas"]["calm"] > 0, r
+assert abs(r["alphas"]["calm"] - 1.0) < 1e-9, r
 
 r = chat("smoke-d", "WTF", steer=False)
 assert r["alphas"] == {}, r

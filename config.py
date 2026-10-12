@@ -19,9 +19,13 @@ MAX_NEW_TOKENS = 400
 DETECTOR = os.getenv("DETECTOR", "llm")
 MOODS = ["neutral", "curious", "confused", "frustrated", "rage", "sad", "rushed", "excited", "skeptical"]
 
-# step 3: mood = SMOOTH * previous + (1 - SMOOTH) * new   (low = follows the current message closely)
-SMOOTH = 0.3
-THRESHOLD = 0.3  # moods below this don't steer
+# step 3: steering memory, per axis (core/controller.py)
+#   message shows a mood (intensity ≥ THRESHOLD): state = (1 − w) × state + w × axes that mood wants
+#     w = max(1 − KEEP, 1/n), n = mood messages so far → 100% on the first, 50%, then capped at 40%
+#   neutral message (no new info):                 state = HOLD × state   (slow fade)
+KEEP = 0.6
+HOLD = 0.9
+THRESHOLD = 0.3
 
 # step 4: mood → axis weights. Each axis is one vector (vectors/build.py AXES) with two poles:
 #   + pushes toward the first pole, − toward the second. Missing vectors are skipped.

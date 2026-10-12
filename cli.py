@@ -104,7 +104,7 @@ class Turn:
                 s.write("\n" + (c("green", label) if e["stage"] == "steered" else c("dim", label)))
         elif e["type"] == "detected":
             self.times["detect"] = e["seconds"]
-            s.write(self.mood_table(e["scores"], e["mood"], e["alphas"]))
+            s.write(self.mood_table(e["scores"], e["alphas"]))
         elif e["type"] == "token":
             text = self.wrap(e["text"])
             s.write(text if e["stream"] == "steered" else c("dim", text))
@@ -139,15 +139,15 @@ class Turn:
             self.space = False
         return out
 
-    def mood_table(self, scores, mood, alphas):
-        rows = [c("dim", f"\n  {'mood':<11} {'this message':<17} {'smoothed':<17}")]
-        top = max((m for m in mood if m != "neutral"), key=mood.get, default=None)
+    def mood_table(self, scores, alphas):
+        rows = [c("dim", "\n  mood        this message")]
+        top = max((m for m in scores if m != "neutral"), key=scores.get, default=None)
         for m in config.MOODS:
-            raw, sm = scores.get(m, 0.0), mood.get(m, 0.0)
-            line = f"  {m:<11} {meter(raw)} {raw:.2f} {meter(sm)} {sm:.2f}"
-            if m == top and sm >= config.THRESHOLD:
+            v = scores.get(m, 0.0)
+            line = f"  {m:<11} {meter(v)} {v:.2f}"
+            if m == top and v >= config.THRESHOLD:
                 line = c("yellow", line)
-            elif raw < 0.05 and sm < 0.05:
+            elif v < 0.05:
                 line = c("dim", line)
             rows.append(line)
         vectors = getattr(self.model, "vectors", None)
@@ -156,9 +156,9 @@ class Turn:
             for b, a in sorted(alphas.items(), key=lambda kv: -abs(kv[1])):
                 missing = vectors is not None and b not in vectors
                 parts.append(f"{b} {a:+.2f}" + (c("red", " (no vector)") if missing else ""))
-            rows.append(c("cyan", "  steering → ") + " · ".join(parts))
+            rows.append(c("cyan", "  steering state → ") + " · ".join(parts))
         else:
-            rows.append(c("cyan", "  steering → ") + c("dim", f"none (no mood above {config.THRESHOLD})"))
+            rows.append(c("cyan", "  steering state → ") + c("dim", "none"))
         return "\n".join(rows) + "\n"
 
 

@@ -1,7 +1,7 @@
 """Steps 1-7 for one turn.  Owner: P1.
 on_event(dict) gets live progress (used by the CLI):
   {"type": "stage", "stage": "detect" | "steered" | "baseline"}
-  {"type": "detected", "scores", "mood", "alphas", "seconds"}
+  {"type": "detected", "scores", "alphas", "seconds"}   alphas = the steering state applied this turn
   {"type": "token", "stream": "steered" | "baseline", "text"}
   {"type": "replied", "stream", "seconds", "words"}"""
 import json
@@ -10,11 +10,11 @@ import time
 from pathlib import Path
 
 import config
-from core.controller import smooth, to_alphas
+from core.controller import update
 from core.model import get_model
 from detector.detect import detect
 
-SESSIONS = {}            # session_id → {"history": [...], "baseline_history": [...], "mood": {...}}
+SESSIONS = {}            # session_id → {"history": [...], "baseline_history": [...], "state": {axis: α}, "n": mood msgs}
 LOCK = threading.Lock()  # one turn at a time: steering is global state on the model
 
 
@@ -23,15 +23,14 @@ def chat(session_id: str, msg: str, steer: bool = True, compare: bool = False, o
     emit = on_event or (lambda e: None)
     with LOCK:
         t = time.time()
-        s = SESSIONS.setdefault(session_id, {"history": [], "baseline_history": [], "mood": {}})
+        s = SESSIONS.setdefault(session_id, {"history": [], "baseline_history": [], "state": {}, "n": 0})
         emit({"type": "stage", "stage": "detect"})
         scores = detect(msg, s["history"])                     # 2
-        s["mood"] = smooth(s["mood"], scores)                  # 3
-        alphas = to_alphas(s["mood"]) if steer else {}         # 4
-        emit({"type": "detected", "scores": scores, "mood": s["mood"], "alphas": alphas,
-              "seconds": time.time() - t})
+        s["state"], s["n"] = update(s["state"], scores, s["n"])  # 3-4 (memory is kept even with steer off)
+        alphas = dict(s["state"]) if steer else {}
+        emit({"type": "detected", "scores": scores, "alphas": alphas, "seconds": time.time() - t})
         out = {"reply": reply(s["history"], msg, alphas, "steered", emit),        # 5-6
-               "scores": scores, "mood": s["mood"], "alphas": alphas}
+               "scores": scores, "alphas": alphas}
         if compare:
             out["baseline"] = reply(s["baseline_history"], msg, {}, "baseline", emit)
         log({"session_id": session_id, "steer": steer, "msg": msg, "latency": time.time() - t, **out})  # 7
